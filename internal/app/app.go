@@ -29,6 +29,5 @@ func Run() {
 	r.Use(middleware.Logger)
 	r.Post("/register", service.Register)
 	r.Post("/login", service.Login)
-	r.Get("/health", service.Health)
 	http.ListenAndServe(":8080", r)
 }
