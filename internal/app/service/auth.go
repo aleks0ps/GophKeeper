@@ -72,8 +72,3 @@ func (s *Svc) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
-
-func (s *Svc) Health(w http.ResponseWriter, r *http.Request) {
-	s.Logger.Printf("OK\n")
-	w.Write([]byte("OK"))
-}
