@@ -42,5 +42,6 @@ func Run() {
 	r.Post("/list", service.List)
 	r.Post("/put", service.Put)
 	r.Post("/put/binary", service.PutBinary)
+	r.Post("/get", service.Get)
 	http.ListenAndServe(":8080", r)
 }

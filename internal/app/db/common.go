@@ -38,15 +38,31 @@ type Password struct {
 	Password string `json:"password"`
 }
 
+type Text struct {
+	Name string `json:"name"`
+	Text string `json:"text"`
+}
+
 type Binary struct {
 	Name string `json:"name"`
 	Path string `json:"path"`
+}
+
+type Card struct {
+	Name   string `json:"name"`
+	Number string `json:"number"`
+	Cvv    string `json:"cvv"`
+	Month  string `json:"month"`
+	Year   string `json:"year"`
 }
 
 type Record struct {
 	Type    string `json:"type"`
 	Payload []byte `json:"payload"`
 }
+
+// alias for Record
+type Data Record
 
 // Storage
 type PG struct {
@@ -59,7 +75,5 @@ type Storage interface {
 	Login(ctx context.Context, u *User) error
 	List(ctx context.Context, u *User) ([]Record, error)
 	Put(ctx context.Context, u *User, rec *Record) error
-	//Load(ctx context.Context, u *User, rec *Record) error
-	//Update(ctx context.Context, u *User, rec *Record) error
-	//Delete(ctx context.Context, u *User, rec *Record) error
+	Get(ctx context.Context, u *User, rec *Record) (*Record, error)
 }

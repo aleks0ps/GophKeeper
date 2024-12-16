@@ -60,7 +60,7 @@ func (p *PG) initSchema(ctx context.Context, u *User) error {
                            id BIGSERIAL PRIMARY KEY,
 			   name VARCHAR(256) NOT NULL,
                            password VARCHAR(256) NOT NULL,
-			   user_id INT,
+			   user_id INT NOT NULL,
 			   CONSTRAINT fk_user
 			     FOREIGN KEY (user_id)
 			       REFERENCES users(id)
@@ -78,11 +78,11 @@ func (p *PG) initSchema(ctx context.Context, u *User) error {
 	tableCard := `CREATE TABLE IF NOT EXISTS %s.card (
                          id BIGSERIAL PRIMARY KEY,
 			 name VARCHAR(100) NOT NULL,
-			 key VARCHAR(100) NOT NULL,
-			 cvc INT NOT NULL,
-			 valid DATE NOT NULL,
-			 number INT NOT NULL,
-			 user_id INT,
+			 number TEXT NOT NULL,
+			 cvv TEXT NOT NULL,
+			 month INT NOT NULL,
+			 year INT NOT NULL,
+			 user_id INT NOT NULL,
 			 CONSTRAINT fk_user
 			   FOREIGN KEY (user_id)
 			     REFERENCES users(id)
@@ -96,12 +96,12 @@ func (p *PG) initSchema(ctx context.Context, u *User) error {
 		p.Logger.Println("ERR:initSchema: ", err)
 		return err
 	}
-	// create
+	// create data/binary table
 	tableData := `CREATE TABLE IF NOT EXISTS %s.data (
 		        id BIGSERIAL PRIMARY KEY,
 			name TEXT NOT NULL,
 			url TEXT NOT NULL,
-			user_id INT,
+			user_id INT NOT NULL,
 		        CONSTRAINT fk_user
 			  FOREIGN KEY (user_id)
 			    REFERENCES users(id)
@@ -112,6 +112,25 @@ func (p *PG) initSchema(ctx context.Context, u *User) error {
 	sqlTableData := fmt.Sprintf(tableData, sqlSchemaName)
 	p.Logger.Println("INFO:initSchema: ", sqlTableData)
 	if _, err := p.DB.Exec(ctx, sqlTableData); err != nil {
+		p.Logger.Println("ERR:initSchema: ", err)
+		return err
+	}
+	// create text table
+	tableText := `CREATE TABLE IF NOT EXISTS %s.text (
+		        id BIGSERIAL PRIMARY KEY,
+			name TEXT NOT NULL,
+			txt TEXT NOT NULL,
+			user_id INT NOT NULL,
+		        CONSTRAINT fk_user
+			  FOREIGN KEY (user_id)
+			    REFERENCES users(id)
+			    ON DELETE CASCADE
+	              );
+		      CREATE UNIQUE INDEX %[1]s_uniq_text on %[1]s.text (name)
+		      `
+	sqlTableText := fmt.Sprintf(tableText, sqlSchemaName)
+	p.Logger.Println("INFO:initSchema: ", sqlTableText)
+	if _, err := p.DB.Exec(ctx, sqlTableText); err != nil {
 		p.Logger.Println("ERR:initSchema: ", err)
 		return err
 	}
