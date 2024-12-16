@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 
 	myerror "github.com/aleks0ps/GophKeeper/internal/app/error"
 	"github.com/aleks0ps/GophKeeper/internal/app/util"
@@ -45,6 +46,8 @@ func NewDB(ctx context.Context, DSN string, logger *log.Logger) (*PG, error) {
 func (p *PG) initSchema(ctx context.Context, u *User) error {
 	// per-user schema
 	sqlSchemaName := pgx.Identifier{kSchemaPrefix + u.ID}.Sanitize()
+	// trim doubel qoutes
+	sqlSchemaName = strings.Trim(sqlSchemaName, "\"")
 	sqlSchema := fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", sqlSchemaName)
 	p.Logger.Println("INFO:initSchema: ", sqlSchema)
 	p.Logger.Println("INFO initSchema: ", sqlSchemaName)
@@ -55,15 +58,18 @@ func (p *PG) initSchema(ctx context.Context, u *User) error {
 	// create password table in schema
 	tablePassword := `CREATE TABLE IF NOT EXISTS %s.password (
                            id BIGSERIAL PRIMARY KEY,
-                           password VARCHAR(256),
+			   name VARCHAR(256) NOT NULL,
+                           password VARCHAR(256) NOT NULL,
 			   user_id INT,
 			   CONSTRAINT fk_user
 			     FOREIGN KEY (user_id)
 			       REFERENCES users(id)
 			       ON DELETE CASCADE
-	                 )`
+	                 );
+			 CREATE UNIQUE INDEX %[1]s_uniq_pass on %[1]s.password (name)
+			 `
 	sqlTablePassword := fmt.Sprintf(tablePassword, sqlSchemaName)
-	//p.Logger.Println("INFO:initSchema: ", sqlTablePassword)
+	p.Logger.Println("INFO:initSchema: ", sqlTablePassword)
 	if _, err := p.DB.Exec(ctx, sqlTablePassword); err != nil {
 		p.Logger.Println("ERR:initSchema: ", err)
 		return err
@@ -71,18 +77,21 @@ func (p *PG) initSchema(ctx context.Context, u *User) error {
 	// create card table in schema
 	tableCard := `CREATE TABLE IF NOT EXISTS %s.card (
                          id BIGSERIAL PRIMARY KEY,
-			 key VARCHAR(100),
-			 cvc INT,
+			 name VARCHAR(100) NOT NULL,
+			 key VARCHAR(100) NOT NULL,
+			 cvc INT NOT NULL,
 			 valid DATE NOT NULL,
-			 number INT,
+			 number INT NOT NULL,
 			 user_id INT,
 			 CONSTRAINT fk_user
 			   FOREIGN KEY (user_id)
 			     REFERENCES users(id)
 			     ON DELETE CASCADE
-                      )`
+                      );
+		      CREATE UNIQUE INDEX %[1]s_uniq_card on %[1]s.card (name)
+		      `
 	sqlTableCard := fmt.Sprintf(tableCard, sqlSchemaName)
-	//p.Logger.Println("INFO:initSchema: ", sqlTableCard)
+	p.Logger.Println("INFO:initSchema: ", sqlTableCard)
 	if _, err := p.DB.Exec(ctx, sqlTableCard); err != nil {
 		p.Logger.Println("ERR:initSchema: ", err)
 		return err
@@ -90,17 +99,18 @@ func (p *PG) initSchema(ctx context.Context, u *User) error {
 	// create
 	tableData := `CREATE TABLE IF NOT EXISTS %s.data (
 		        id BIGSERIAL PRIMARY KEY,
-			is_text BOOLEAN DEFAULT 'f',
-			is_binary BOOLEAN DEFAULT 't',
+			name TEXT NOT NULL,
 			url TEXT NOT NULL,
 			user_id INT,
 		        CONSTRAINT fk_user
 			  FOREIGN KEY (user_id)
 			    REFERENCES users(id)
 			    ON DELETE CASCADE
-	              )`
+	              );
+		      CREATE UNIQUE INDEX %[1]s_uniq_data on %[1]s.data (name)
+		      `
 	sqlTableData := fmt.Sprintf(tableData, sqlSchemaName)
-	//p.Logger.Println("INFO:initSchema: ", sqlTableData)
+	p.Logger.Println("INFO:initSchema: ", sqlTableData)
 	if _, err := p.DB.Exec(ctx, sqlTableData); err != nil {
 		p.Logger.Println("ERR:initSchema: ", err)
 		return err

@@ -7,6 +7,7 @@ import (
 )
 
 type Svc struct {
-	Logger *log.Logger
-	DB     db.Storage
+	Logger  *log.Logger
+	DB      db.Storage
+	DataDir string
 }

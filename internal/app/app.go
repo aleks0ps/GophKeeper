@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -24,10 +25,22 @@ func Run() {
 	if err != nil {
 		logger.Fatal(err)
 	}
-	service := svc.Svc{Logger: logger, DB: db}
+	pwd, err := os.Getwd()
+	if err != nil {
+		logger.Fatal(err)
+	}
+	dataDir := pwd + "/data"
+	err = os.Mkdir(dataDir, 0755)
+	if err != nil && !errors.Is(err, os.ErrExist) {
+		logger.Fatal(err)
+	}
+	service := svc.Svc{Logger: logger, DB: db, DataDir: dataDir}
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Post("/register", service.Register)
 	r.Post("/login", service.Login)
+	r.Post("/list", service.List)
+	r.Post("/put", service.Put)
+	r.Post("/put/binary", service.PutBinary)
 	http.ListenAndServe(":8080", r)
 }
