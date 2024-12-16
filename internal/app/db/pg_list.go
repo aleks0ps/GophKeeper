@@ -66,5 +66,55 @@ func (p *PG) List(ctx context.Context, u *User) ([]Record, error) {
 		p.Logger.Println(err)
 		return recs, err
 	}
+	// find all cards
+	sql = fmt.Sprintf("SELECT id, name FROM id%s.card WHERE user_id=%[1]s", userID)
+	rows, err = p.DB.Query(ctx, sql)
+	if err != nil {
+		p.Logger.Println(err)
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		err := rows.Scan(&ID, &name)
+		if err != nil {
+			p.Logger.Println(err)
+			return nil, err
+		}
+		payload, err := json.Marshal(Card{Name: name})
+		if err != nil {
+			p.Logger.Println(err)
+			return nil, err
+		}
+		recs = append(recs, Record{Type: SRecordCard, Payload: payload})
+	}
+	if err := rows.Err(); err != nil {
+		p.Logger.Println(err)
+		return recs, err
+	}
+	// find all text
+	sql = fmt.Sprintf("SELECT id, name FROM id%s.text WHERE user_id=%[1]s", userID)
+	rows, err = p.DB.Query(ctx, sql)
+	if err != nil {
+		p.Logger.Println(err)
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		err := rows.Scan(&ID, &name)
+		if err != nil {
+			p.Logger.Println(err)
+			return nil, err
+		}
+		payload, err := json.Marshal(Text{Name: name})
+		if err != nil {
+			p.Logger.Println(err)
+			return nil, err
+		}
+		recs = append(recs, Record{Type: SRecordText, Payload: payload})
+	}
+	if err := rows.Err(); err != nil {
+		p.Logger.Println(err)
+		return recs, err
+	}
 	return recs, nil
 }
