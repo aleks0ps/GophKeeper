@@ -58,8 +58,8 @@ func (p *PG) initSchema(ctx context.Context, u *User) error {
 	// create password table in schema
 	tablePassword := `CREATE TABLE IF NOT EXISTS %s.password (
                            id BIGSERIAL PRIMARY KEY,
-			   name VARCHAR(256) NOT NULL,
-                           password VARCHAR(256) NOT NULL,
+			   name TEXT NOT NULL,
+                           password BYTEA NOT NULL,
 			   user_id INT NOT NULL,
 			   CONSTRAINT fk_user
 			     FOREIGN KEY (user_id)
@@ -77,9 +77,9 @@ func (p *PG) initSchema(ctx context.Context, u *User) error {
 	// create card table in schema
 	tableCard := `CREATE TABLE IF NOT EXISTS %s.card (
                          id BIGSERIAL PRIMARY KEY,
-			 name VARCHAR(100) NOT NULL,
+			 name TEXT NOT NULL,
 			 number TEXT NOT NULL,
-			 cvv TEXT NOT NULL,
+			 cvv BYTEA NOT NULL,
 			 month INT NOT NULL,
 			 year INT NOT NULL,
 			 user_id INT NOT NULL,
@@ -100,7 +100,7 @@ func (p *PG) initSchema(ctx context.Context, u *User) error {
 	tableData := `CREATE TABLE IF NOT EXISTS %s.data (
 		        id BIGSERIAL PRIMARY KEY,
 			name TEXT NOT NULL,
-			url TEXT NOT NULL,
+			url BYTEA NOT NULL,
 			user_id INT NOT NULL,
 		        CONSTRAINT fk_user
 			  FOREIGN KEY (user_id)
@@ -119,7 +119,7 @@ func (p *PG) initSchema(ctx context.Context, u *User) error {
 	tableText := `CREATE TABLE IF NOT EXISTS %s.text (
 		        id BIGSERIAL PRIMARY KEY,
 			name TEXT NOT NULL,
-			txt TEXT NOT NULL,
+			txt BYTEA NOT NULL,
 			user_id INT NOT NULL,
 		        CONSTRAINT fk_user
 			  FOREIGN KEY (user_id)

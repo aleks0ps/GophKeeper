@@ -21,7 +21,7 @@ func (p *PG) Put(ctx context.Context, u *User, rec *Record) error {
 		var pass Password
 		err := json.Unmarshal(rec.Payload, &pass)
 		if err != nil {
-			p.Logger.Println(err)
+			p.Logger.Printf("ERR:db:put:jsonUnmarshal: %+v\n", err)
 			return err
 		}
 		table := fmt.Sprintf("id%s.password", userID)
@@ -29,12 +29,12 @@ func (p *PG) Put(ctx context.Context, u *User, rec *Record) error {
 		// encrypt data
 		encrypted, err := enc.Encrypt([]byte(p.Secret), []byte(pass.Password))
 		if err != nil {
-			p.Logger.Printf("ERR:db:put %s\n", err)
+			p.Logger.Printf("ERR:db:put:enc.Encrypt: %s\n", err)
 			return err
 		}
-		_, err = p.DB.Exec(ctx, sql, pass.Name, string(encrypted), userID)
+		_, err = p.DB.Exec(ctx, sql, pass.Name, encrypted, userID)
 		if err != nil {
-			p.Logger.Println(err)
+			p.Logger.Printf("ERR:db:put:p.DB.Exec: %+v\n", err)
 			return err
 		}
 	} else if rec.Type == SRecordBinary {
