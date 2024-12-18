@@ -1,3 +1,4 @@
+// http -- описывает удобное текстовое представление разные параметров http протокола
 package http
 
 import (
@@ -6,6 +7,7 @@ import (
 	"strings"
 )
 
+// ContentType -- кодирует содержимое http запроса
 type ContentType uint64
 
 const SContentType string = "Content-Type"
@@ -54,6 +56,7 @@ var reverseContentTypeMap = map[ContentType]string{
 	CTypeJS:         STypeJS,
 }
 
+// GetContentTypeCode -- получает закодированное представление типа
 func GetContentTypeCode(stype string) ContentType {
 	stype = strings.ToLower(stype)
 	ctype, ok := contentTypeMap[stype]
@@ -64,6 +67,7 @@ func GetContentTypeCode(stype string) ContentType {
 
 }
 
+// GetContentTypeName -- получает текстовое представление типа
 func GetContentTypeName(code ContentType) string {
 	stype, ok := reverseContentTypeMap[code]
 	if !ok {
@@ -72,6 +76,7 @@ func GetContentTypeName(code ContentType) string {
 	return stype
 }
 
+// WriteResponse -- обертка над интрейсом http.ResponseWriter для более короткой отправки ответа пользователю
 func WriteResponse(w http.ResponseWriter, t ContentType, status int, data []byte) {
 	switch t {
 	case CTypeNone:
@@ -87,6 +92,7 @@ func WriteResponse(w http.ResponseWriter, t ContentType, status int, data []byte
 	}
 }
 
+// WriterError -- обертка для отправки сообщения об ошибке пользователю
 func WriteError(w http.ResponseWriter, status int, err error) {
 	var errMsg string
 	if err != nil {

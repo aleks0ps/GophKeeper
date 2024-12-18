@@ -26,6 +26,7 @@ func DEBUG(logger *log.Logger, r *http.Request) {
 	}
 }
 
+// Register -- регистрирует пользователя и отдает cookies
 func (s *Svc) Register(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	buf := bytes.Buffer{}
@@ -60,6 +61,7 @@ func (s *Svc) Register(w http.ResponseWriter, r *http.Request) {
 	myhttp.WriteResponse(w, myhttp.CTypeNone, http.StatusOK, nil)
 }
 
+// Login -- логирует пользователя и отдает cookies
 func (s *Svc) Login(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	buf := bytes.Buffer{}

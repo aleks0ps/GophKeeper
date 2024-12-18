@@ -10,6 +10,7 @@ import (
 	myhttp "github.com/aleks0ps/GophKeeper/internal/app/http"
 )
 
+// List -- функция возвращает все секреты которые есть у пользователя не раскрывая самих данных
 func (s *Svc) List(w http.ResponseWriter, r *http.Request) {
 	err := mycookie.ValidateCookie(r)
 	if err != nil {
