@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -707,7 +708,11 @@ func main() {
 	if err != nil && !errors.Is(err, os.ErrExist) {
 		log.Fatal(err)
 	}
-	client := Client{URL: opts.URL, Http: &http.Client{Jar: jar}, Download: opts.Download}
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	URL := "https://localhost:8080"
+	client := Client{URL: URL, Http: &http.Client{Jar: jar, Transport: tr}, Download: opts.Download}
 	for {
 		fmt.Print("> ")
 		cmd, err := readCmd()

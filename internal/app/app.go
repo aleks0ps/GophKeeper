@@ -45,7 +45,7 @@ func Run() {
 	r.Post("/put/binary", service.PutBinary)
 	r.Post("/get", service.Get)
 	server := &http.Server{
-		Addr:    ":8080",
+		Addr:    opts.RunAddress,
 		Handler: r,
 	}
 	// enable TLS
@@ -63,10 +63,5 @@ func Run() {
 	err = server.ListenAndServeTLS(cert, key)
 	if err != http.ErrServerClosed {
 		logger.Fatal("HTTPS %v\n", err)
-	}
-	// HTTP server
-	err = server.ListenAndServe()
-	if err != http.ErrServerClosed {
-		logger.Fatalf("HTTP %v\n", err)
 	}
 }

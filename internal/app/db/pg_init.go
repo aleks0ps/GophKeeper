@@ -24,19 +24,19 @@ func initDB(ctx context.Context, db *pgxpool.Pool, logger *log.Logger) {
 				CREATE UNIQUE INDEX users_uniq_login ON users (login);
 				`)
 	if err != nil {
-		logger.Println("cannot init db: ", err)
+		logger.Printf("cannot init db: %+v\n", err)
 	}
 }
 
 func NewDB(ctx context.Context, DSN string, logger *log.Logger, secret string) (*PG, error) {
 	poolConfig, err := pgxpool.ParseConfig(DSN)
 	if err != nil {
-		logger.Println("ERR: ", err)
+		logger.Printf("ERR: %+v\n", err)
 		return nil, err
 	}
 	db, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {
-		logger.Println("ERR: ", err)
+		logger.Printf("ERR: %+v\n", err)
 		return nil, err
 	}
 	initDB(ctx, db, logger)
