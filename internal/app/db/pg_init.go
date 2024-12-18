@@ -28,7 +28,7 @@ func initDB(ctx context.Context, db *pgxpool.Pool, logger *log.Logger) {
 	}
 }
 
-func NewDB(ctx context.Context, DSN string, logger *log.Logger) (*PG, error) {
+func NewDB(ctx context.Context, DSN string, logger *log.Logger, secret string) (*PG, error) {
 	poolConfig, err := pgxpool.ParseConfig(DSN)
 	if err != nil {
 		logger.Println("ERR: ", err)
@@ -40,7 +40,7 @@ func NewDB(ctx context.Context, DSN string, logger *log.Logger) (*PG, error) {
 		return nil, err
 	}
 	initDB(ctx, db, logger)
-	return &PG{DB: db, Logger: logger}, nil
+	return &PG{DB: db, Logger: logger, Secret: secret}, nil
 }
 
 func (p *PG) initSchema(ctx context.Context, u *User) error {

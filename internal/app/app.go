@@ -22,7 +22,7 @@ func Run() {
 	// set up logger
 	logger := log.New(os.Stdout, "SVC: ", log.LstdFlags)
 	// set up storage
-	db, err := db.NewDB(ctx, opts.DatabaseURI, logger)
+	db, err := db.NewDB(ctx, opts.DatabaseURI, logger, opts.Secret)
 	if err != nil {
 		logger.Fatal(err)
 	}

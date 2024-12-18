@@ -90,6 +90,7 @@ func GetSRecordType(rtype RecordType) string {
 type PG struct {
 	DB     *pgxpool.Pool
 	Logger *log.Logger
+	Secret string
 }
 
 type Storage interface {
