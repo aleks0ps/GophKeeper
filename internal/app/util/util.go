@@ -12,6 +12,7 @@ func Hash(s string) (string, error) {
 	return string(hash), nil
 }
 
+// CheckPasswordHash -- функция проверят пароль пользователья при аутентификации
 func CheckPasswordHash(hash string, password string) error {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	if err != nil {

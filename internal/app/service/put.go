@@ -16,6 +16,7 @@ import (
 	myhttp "github.com/aleks0ps/GophKeeper/internal/app/http"
 )
 
+// Put -- записывает секрет пользователя в хранилище
 func (s *Svc) Put(w http.ResponseWriter, r *http.Request) {
 	err := mycookie.ValidateCookie(r)
 	if err != nil {
@@ -47,6 +48,7 @@ func (s *Svc) Put(w http.ResponseWriter, r *http.Request) {
 	myhttp.WriteResponse(w, myhttp.CTypeNone, http.StatusOK, nil)
 }
 
+// PutBinary -- функция предназначения для загрузки бинарных данные произвольного размера, в хранилище записывается путь к данным на диске
 func (s *Svc) PutBinary(w http.ResponseWriter, r *http.Request) {
 	err := mycookie.ValidateCookie(r)
 	if err != nil {

@@ -9,6 +9,7 @@ import (
 
 const kSchemaPrefix = "id"
 
+// RecordType -- тип описывает записи которые мы хранить как секреты
 type RecordType int
 
 const (
@@ -27,27 +28,32 @@ const (
 	SRecordBinary   = "binary"
 )
 
+// User -- тип для хранения информации о пользователе который запрашивает данные
 type User struct {
 	ID       string `json:"id,omitempty"`
 	Login    string `json:"login"`
 	Password string `json:"password"`
 }
 
+// Password -- типа для хранения пароля
 type Password struct {
 	Name     string `json:"name"`
 	Password string `json:"password"`
 }
 
+// Text -- тип для произвольной текстовой информации
 type Text struct {
 	Name string `json:"name"`
 	Text string `json:"text"`
 }
 
+// Binary -- типа для хранения бинарных данных
 type Binary struct {
 	Name string `json:"name"`
 	Path string `json:"path"`
 }
 
+// Card -- тип для хранения данных о банковских картах
 type Card struct {
 	Name   string `json:"name"`
 	Number string `json:"number"`
@@ -56,6 +62,7 @@ type Card struct {
 	Year   string `json:"year"`
 }
 
+// Record -- абстрактный типа с помощью которого мы передаем данные от клиента на сервер
 type Record struct {
 	Type    string `json:"type"`
 	Payload []byte `json:"payload"`
@@ -69,6 +76,7 @@ var recordTypes map[string]RecordType = map[string]RecordType{
 	SRecordCard:     RecordCard,
 }
 
+// GetRecordType -- функция получает значение типа по текстовому педставлению
 func GetRecordType(r string) RecordType {
 	t, ok := recordTypes[r]
 	if !ok {
@@ -77,6 +85,7 @@ func GetRecordType(r string) RecordType {
 	return t
 }
 
+// GetSRecordType -- функция получает текстовое представление типа по значению
 func GetSRecordType(rtype RecordType) string {
 	for sd, t := range recordTypes {
 		if t == rtype {
@@ -86,13 +95,14 @@ func GetSRecordType(rtype RecordType) string {
 	return SRecordUnknown
 }
 
-// Storage
+// PG -- структура реализующая интерфейс Storage.
 type PG struct {
 	DB     *pgxpool.Pool
 	Logger *log.Logger
 	Secret string
 }
 
+// Storage -- интерфейс харнения секретов
 type Storage interface {
 	Register(ctx context.Context, u *User) error
 	Login(ctx context.Context, u *User) error

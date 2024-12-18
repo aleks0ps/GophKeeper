@@ -15,6 +15,7 @@ type Claims struct {
 
 const jwtKey = "R@ndomSecretKey"
 
+// NewToken -- создает новый токен пользователя, сохраняем в куки пользовательский ID (name)
 func NewToken(value string, expirationTime time.Time) (string, *Claims, error) {
 	claims := &Claims{
 		// plain text string
@@ -32,6 +33,7 @@ func NewToken(value string, expirationTime time.Time) (string, *Claims, error) {
 	return tokenString, claims, nil
 }
 
+// CheckToken -- проверяем валидный ли токен
 func CheckToken(tokenStr string) (*Claims, bool, error) {
 	claims := &Claims{}
 	token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (any, error) {
@@ -47,6 +49,7 @@ func CheckToken(tokenStr string) (*Claims, bool, error) {
 	return claims, true, nil
 }
 
+// RefreshToken -- обновляем токен если он не валидный
 func RefreshToken(expirationTime time.Time, tokenStr string) (string, bool, error) {
 	claims := &Claims{}
 	_, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (any, error) {
@@ -64,6 +67,7 @@ func RefreshToken(expirationTime time.Time, tokenStr string) (string, bool, erro
 	return tokenString, true, nil
 }
 
+// NewCookie -- отдает пользователю cookies
 func NewCookie(w http.ResponseWriter, value string) (map[string]string, error) {
 	res := make(map[string]string)
 	expirationTime := time.Now().Add(5 * time.Minute)

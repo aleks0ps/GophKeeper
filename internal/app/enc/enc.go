@@ -9,6 +9,7 @@ import (
 	"io"
 )
 
+// Encrypt -- функция кодирует байты перед записью в бд
 func Encrypt(key, text []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -25,6 +26,7 @@ func Encrypt(key, text []byte) ([]byte, error) {
 	return ciphertext, nil
 }
 
+// Decrypt -- функция декодирует байты перед отправкой пользователю
 func Decrypt(key, text []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
