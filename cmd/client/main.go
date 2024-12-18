@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/aleks0ps/GophKeeper/cmd/client/config"
+	"github.com/aleks0ps/GophKeeper/cmd/client/version"
 	"github.com/aleks0ps/GophKeeper/internal/app/db"
 	"golang.org/x/net/publicsuffix"
 )
@@ -702,6 +703,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Printf("%s %s %s\n", version.Version, version.Date, version.GoVersion)
 	opts := config.ParseOptions()
 	// create download dir
 	err = os.MkdirAll(opts.Download, 0750)
