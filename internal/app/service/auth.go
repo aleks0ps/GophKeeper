@@ -33,7 +33,7 @@ func (s *Svc) Register(w http.ResponseWriter, r *http.Request) {
 	// read from Body and append it to a buffer
 	n, err := buf.ReadFrom(r.Body)
 	if err != nil && err != io.EOF {
-		s.Logger.Println("ERR:svc:Register: %d %v\n", n, err)
+		s.Logger.Printf("ERR:svc:Register: %d %v\n", n, err)
 		return
 	}
 	// wait for json
@@ -67,7 +67,7 @@ func (s *Svc) Login(w http.ResponseWriter, r *http.Request) {
 	buf := bytes.Buffer{}
 	n, err := buf.ReadFrom(r.Body)
 	if err != nil && err != io.EOF {
-		s.Logger.Println("ERR:svc:Login: %d %v\n", n, err)
+		s.Logger.Printf("ERR:svc:Login: %d %v\n", n, err)
 		return
 	}
 	if r.Header.Get(myhttp.SContentType) != myhttp.STypeJSON {
