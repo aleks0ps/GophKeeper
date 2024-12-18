@@ -10,6 +10,7 @@ import (
 	"github.com/aleks0ps/GophKeeper/cmd/gophkeeper/config"
 	"github.com/aleks0ps/GophKeeper/internal/app/db"
 	svc "github.com/aleks0ps/GophKeeper/internal/app/service"
+	mytls "github.com/aleks0ps/GophKeeper/internal/app/tls"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 )
@@ -43,5 +44,29 @@ func Run() {
 	r.Post("/put", service.Put)
 	r.Post("/put/binary", service.PutBinary)
 	r.Post("/get", service.Get)
-	http.ListenAndServe(":8080", r)
+	server := &http.Server{
+		Addr:    ":8080",
+		Handler: r,
+	}
+	// enable TLS
+	var tls mytls.TLS
+	tls.New()
+	cert := "cert.pem"
+	key := "key.pem"
+	if err := tls.WriteCert(cert); err != nil {
+		logger.Fatal("TLS %v\n", err)
+	}
+	if err := tls.WriteKey(key); err != nil {
+		logger.Fatal("TLS %v\n", err)
+	}
+	// HTTPS server
+	err = server.ListenAndServeTLS(cert, key)
+	if err != http.ErrServerClosed {
+		logger.Fatal("HTTPS %v\n", err)
+	}
+	// HTTP server
+	err = server.ListenAndServe()
+	if err != http.ErrServerClosed {
+		logger.Fatalf("HTTP %v\n", err)
+	}
 }
