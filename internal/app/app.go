@@ -54,14 +54,14 @@ func Run() {
 	cert := "cert.pem"
 	key := "key.pem"
 	if err := tls.WriteCert(cert); err != nil {
-		logger.Fatal("TLS %v\n", err)
+		logger.Fatalf("TLS %v\n", err)
 	}
 	if err := tls.WriteKey(key); err != nil {
-		logger.Fatal("TLS %v\n", err)
+		logger.Fatalf("TLS %v\n", err)
 	}
 	// HTTPS server
 	err = server.ListenAndServeTLS(cert, key)
 	if err != http.ErrServerClosed {
-		logger.Fatal("HTTPS %v\n", err)
+		logger.Fatalf("HTTPS %v\n", err)
 	}
 }
