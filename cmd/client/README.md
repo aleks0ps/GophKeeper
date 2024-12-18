@@ -1,6 +1,6 @@
 ## Readme
 
 ```
-./gophclient -h http://localhost:8080 -d ./download
+./gophclient -h https://localhost:4443 -d ./download
 help
 ```
