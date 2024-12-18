@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"mime/multipart"
 	"net/http"
+	"os"
 
 	mycookie "github.com/aleks0ps/GophKeeper/internal/app/cookie"
 	"github.com/aleks0ps/GophKeeper/internal/app/db"
@@ -33,14 +35,56 @@ func (s *Svc) Get(w http.ResponseWriter, r *http.Request) {
 		myhttp.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
-	var res *db.Record
+	var resp *db.Record
 	user := db.User{ID: userID}
-	res, err = s.DB.Get(r.Context(), &user, &rec)
+	resp, err = s.DB.Get(r.Context(), &user, &rec)
 	if err != nil {
 		s.Logger.Println("ERR:svc:Get ", err)
 		myhttp.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
-	s.Logger.Printf("%v\n", *res)
-	myhttp.WriteResponse(w, myhttp.CTypeNone, http.StatusOK, nil)
+	if resp.Type == db.SRecordBinary {
+		var binary db.Binary
+		// Decode response payload
+		err = json.Unmarshal(resp.Payload, &binary)
+		if err != nil {
+			s.Logger.Println("ERR:svc:Get: ", err)
+			myhttp.WriteError(w, http.StatusInternalServerError, err)
+			return
+		}
+		writer := multipart.NewWriter(w)
+		contentType := writer.FormDataContentType()
+		w.Header().Set("Content-Type", contentType)
+		file, err := os.Open(binary.Path)
+		if err != nil {
+			s.Logger.Println("ERR:svc:Get: ", err)
+			return
+		}
+		defer file.Close()
+		defer writer.Close()
+		part, err := writer.CreateFormFile("file", binary.Name)
+		if err != nil {
+			s.Logger.Println("ERR:svc:Get: ", err)
+			return
+		}
+		for {
+			_, err = io.CopyN(part, file, 4096)
+			if err == io.ErrUnexpectedEOF || err == io.EOF {
+				break
+			}
+			if err != nil {
+				s.Logger.Println("ERR:svc:Get: ", err)
+				return
+			}
+		}
+		s.Logger.Println("INFO:svc:Get: file uploaded to client")
+	} else {
+		payload, err := json.Marshal(resp)
+		if err != nil {
+			s.Logger.Println("ERR:svc:Get: ", err)
+			myhttp.WriteResponse(w, myhttp.CTypeNone, http.StatusInternalServerError, nil)
+			return
+		}
+		myhttp.WriteResponse(w, myhttp.CTypeJSON, http.StatusOK, payload)
+	}
 }
