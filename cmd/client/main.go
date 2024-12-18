@@ -8,7 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
+	"mime"
 	"mime/multipart"
 	"net/http"
 	"net/http/cookiejar"
@@ -20,8 +22,9 @@ import (
 )
 
 type Client struct {
-	URL  string
-	Http *http.Client
+	URL      string
+	Http     *http.Client
+	Download string
 }
 
 type CmdType int
@@ -335,7 +338,7 @@ func parseCmd(ctx context.Context, cmd string) (*Cmd, error) {
 			c.DType = DataPassword
 		} else if argv[1] == "text" {
 			c.DType = DataText
-		} else if argv[1] == "binary" {
+		} else if argv[1] == "binary" || argv[1] == "file" {
 			c.DType = DataBinary
 		} else if argv[1] == "card" {
 			c.DType = DataCard
@@ -505,11 +508,16 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 					pw.CloseWithError(err)
 					return
 				}
-				_, err = io.CopyN(part, file, 4096)
-				if err != nil {
-					log.Println(err)
-					pw.CloseWithError(err)
-					return
+				for {
+					_, err = io.CopyN(part, file, 4096)
+					if err == io.ErrUnexpectedEOF || err == io.EOF {
+						break
+					}
+					if err != nil {
+						log.Println(err)
+						pw.CloseWithError(err)
+						return
+					}
 				}
 				pw.CloseWithError(writer.Close())
 			}()
@@ -580,16 +588,154 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 			return ErrUnknownData
 		}
 		data := db.Data{Type: getSDataType(cmd.DType)}
-		payload, err := json.Marshal(data)
-		if err != nil {
-			log.Println(err)
-			return err
+		var resp *http.Response
+		if cmd.DType == DataPassword {
+			pass := db.Password{Name: cmd.Options["name"]}
+			jsonPass, err := json.Marshal(pass)
+			if err != nil {
+				log.Println(err)
+				return err
+			}
+			data.Payload = jsonPass
+			payload, err := json.Marshal(data)
+			if err != nil {
+				log.Println(err)
+				return err
+			}
+			buf := bytes.NewBuffer(payload)
+			resp, err = c.Http.Post(URL, "application/json", buf)
+			if err != nil {
+				log.Println(err)
+				return err
+			}
+		} else if cmd.DType == DataText {
+			text := db.Text{Name: cmd.Options["name"]}
+			jsonText, err := json.Marshal(text)
+			if err != nil {
+				log.Println(err)
+				return err
+			}
+			data.Payload = jsonText
+			payload, err := json.Marshal(data)
+			if err != nil {
+				log.Println(err)
+				return err
+			}
+			buf := bytes.NewBuffer(payload)
+			resp, err = c.Http.Post(URL, "application/json", buf)
+			if err != nil {
+				log.Println(err)
+				return err
+			}
+		} else if cmd.DType == DataCard {
+			card := db.Card{Name: cmd.Options["name"]}
+			jsonCard, err := json.Marshal(card)
+			if err != nil {
+				log.Println(err)
+				return err
+			}
+			data.Payload = jsonCard
+			payload, err := json.Marshal(data)
+			if err != nil {
+				log.Println(err)
+				return err
+			}
+			buf := bytes.NewBuffer(payload)
+			resp, err = c.Http.Post(URL, "application/json", buf)
+			if err != nil {
+				log.Println(err)
+				return err
+			}
+		} else if cmd.DType == DataBinary {
+			binary := db.Binary{Name: cmd.Options["name"]}
+			jsonBinary, err := json.Marshal(binary)
+			if err != nil {
+				log.Println(err)
+				return err
+			}
+			data.Payload = jsonBinary
+			payload, err := json.Marshal(data)
+			if err != nil {
+				log.Println(err)
+				return err
+			}
+			buf := bytes.NewBuffer(payload)
+			resp, err = c.Http.Post(URL, "application/json", buf)
+			if err != nil {
+				log.Println(err)
+				return err
+			}
 		}
-		buf := bytes.NewBuffer(payload)
-		resp, err := c.Http.Post(URL, "application/json", buf)
-		if err != nil {
-			log.Println(err)
-			return err
+		if resp.Header.Get("Content-Type") == "application/json" {
+			defer resp.Body.Close()
+			buf := bytes.Buffer{}
+			_, err := buf.ReadFrom(resp.Body)
+			if err != nil {
+				log.Println(err)
+				return err
+			}
+			var rec db.Record
+			err = json.Unmarshal(buf.Bytes(), &rec)
+			if err != nil {
+				log.Println(err)
+				return err
+			}
+			if rec.Type == db.SRecordPassword {
+				var pass db.Password
+				err := json.Unmarshal(rec.Payload, &pass)
+				if err != nil {
+					log.Println(err)
+					return err
+				}
+				fmt.Printf("OK >> %+v\n", pass)
+			} else if rec.Type == db.SRecordText {
+				var text db.Text
+				err := json.Unmarshal(rec.Payload, &text)
+				if err != nil {
+					log.Println(err)
+					return err
+				}
+				fmt.Printf("OK >> %+v\n", text)
+			} else if rec.Type == db.SRecordCard {
+				var card db.Card
+				err := json.Unmarshal(rec.Payload, &card)
+				if err != nil {
+					log.Println(err)
+					return err
+				}
+				fmt.Printf("OK >> %+v\n", card)
+			}
+		} else {
+			_, params, _ := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+			mr := multipart.NewReader(resp.Body, params["boundary"])
+			var fpath string
+			var file *os.File
+			for part, err := mr.NextPart(); err == nil; part, err = mr.NextPart() {
+				fpath = c.Download + "/" + part.FileName()
+				if _, err := os.Stat(fpath); errors.Is(err, os.ErrNotExist) {
+					// Create file if not exists
+					file, err = os.OpenFile(fpath, os.O_RDWR|os.O_CREATE, 0644)
+					if err != nil {
+						log.Fatal("ERR:get:Binary: ", err)
+					}
+					defer file.Close()
+				} else {
+					fpath = part.FileName()
+					file, err = os.CreateTemp(c.Download, fpath)
+					if err != nil {
+						log.Fatal(err)
+					}
+					defer file.Close()
+				}
+				bytes, err := ioutil.ReadAll(part)
+				if err != nil {
+					log.Fatal(err)
+				}
+				if _, err := file.Write(bytes); err != nil {
+					log.Fatal(err)
+				}
+			}
+			log.Println("%s downloaded\n", fpath)
 		}
 		log.Printf("%v\n", resp.Status)
 	}
@@ -603,7 +749,13 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	client := Client{URL: URL, Http: &http.Client{Jar: jar}}
+	// download dir
+	download := "download"
+	err = os.MkdirAll(download, 0750)
+	if err != nil && !errors.Is(err, os.ErrExist) {
+		log.Fatal(err)
+	}
+	client := Client{URL: URL, Http: &http.Client{Jar: jar}, Download: download}
 	for {
 		fmt.Print("> ")
 		cmd, err := readCmd()
