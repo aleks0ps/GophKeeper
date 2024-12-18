@@ -718,7 +718,7 @@ func main() {
 		fmt.Print("> ")
 		cmd, err := readCmd()
 		if err != nil {
-			log.Fatal("%v", err)
+			log.Fatalf("%v", err)
 		}
 		c, err := parseCmd(ctx, cmd)
 		if err != nil {
