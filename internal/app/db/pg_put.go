@@ -29,7 +29,7 @@ func (p *PG) Put(ctx context.Context, u *User, rec *Record) error {
 		// encrypt data
 		encrypted, err := enc.Encrypt([]byte(p.Secret), []byte(pass.Password))
 		if err != nil {
-			p.Logger.Println(err)
+			p.Logger.Printf("ERR:db:put %s\n", err)
 			return err
 		}
 		_, err = p.DB.Exec(ctx, sql, pass.Name, string(encrypted), userID)
@@ -77,7 +77,7 @@ func (p *PG) Put(ctx context.Context, u *User, rec *Record) error {
 		// encrypt data
 		encrypted, err := enc.Encrypt([]byte(p.Secret), []byte(card.Cvv))
 		if err != nil {
-			p.Logger.Println(err)
+			p.Logger.Printf("ERR:db:put: %+v\n", err)
 			return err
 		}
 		_, err = p.DB.Exec(ctx, sql, card.Name, card.Number, encrypted, card.Month, card.Year, userID)

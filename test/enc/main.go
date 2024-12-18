@@ -12,7 +12,8 @@ import (
 )
 
 func main() {
-	key := []byte("a very very very very secret key") // 32 bytes
+	//key := []byte("a very very very very secret key") // 32 bytes
+	key := []byte("5BB0655939A7034A4F4A904AEEC52C1D")
 	plaintext := []byte("some really really really long plaintext")
 	fmt.Printf("%s\n", plaintext)
 	ciphertext, err := encrypt(key, plaintext)

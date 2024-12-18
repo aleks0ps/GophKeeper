@@ -10,7 +10,7 @@ import (
 const (
 	defaultRunAddress  = "localhost:8080"
 	defaultDatabaseURI = "postgres://gophkeeper:gophkeeper@localhost:5432/gophkeeper?sslmode=disable"
-	defaultSecretKey   = "password"
+	defaultSecretKey   = "235550ABCB36C06FB7477BBE05971B26" // 32 bytes
 )
 
 type Config struct {

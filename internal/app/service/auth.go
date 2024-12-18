@@ -89,6 +89,7 @@ func (s *Svc) Login(w http.ResponseWriter, r *http.Request) {
 	// issue cookie
 	_, err = mycookie.EnsureCookie(w, r, user.Login)
 	if err != nil {
+		s.Logger.Println("ERR:svc:Login: ", err)
 		myhttp.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
