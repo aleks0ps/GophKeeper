@@ -17,6 +17,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/aleks0ps/GophKeeper/cmd/client/config"
 	"github.com/aleks0ps/GophKeeper/internal/app/db"
 	"golang.org/x/net/publicsuffix"
 )
@@ -25,15 +26,6 @@ type Client struct {
 	URL      string
 	Http     *http.Client
 	Download string
-}
-
-type CmdType int
-type DataType int
-
-// structure for passing data
-type Data struct {
-	Type    string `json:"type"`
-	Payload []byte `json:"payload"`
 }
 
 var (
@@ -49,21 +41,7 @@ var (
 	ErrShouldNotReach   error = errors.New("Should not reach")
 )
 
-const (
-	DataUnknown DataType = iota
-	DataPassword
-	DataText
-	DataBinary
-	DataCard
-)
-
-const (
-	SDataUnknown  string = "unknown"
-	SDataPassword        = "password"
-	SDataText            = "text"
-	SDataBinary          = "binary"
-	SDataCard            = "card"
-)
+type CmdType int
 
 const (
 	CmdUnknown CmdType = iota
@@ -95,14 +73,6 @@ var commandTypes map[string]CmdType = map[string]CmdType{
 	SCmdGet:      CmdGet,
 }
 
-var dataTypes map[string]DataType = map[string]DataType{
-	SDataUnknown:  DataUnknown,
-	SDataPassword: DataPassword,
-	SDataText:     DataText,
-	SDataBinary:   DataBinary,
-	SDataCard:     DataCard,
-}
-
 func getCmdType(cmd string) CmdType {
 	t, ok := commandTypes[cmd]
 	if !ok {
@@ -120,27 +90,10 @@ func getCmdSType(ctype CmdType) string {
 	return SCmdUnknown
 }
 
-func getDataType(d string) DataType {
-	t, ok := dataTypes[d]
-	if !ok {
-		return DataUnknown
-	}
-	return t
-}
-
-func getSDataType(dtype DataType) string {
-	for sd, t := range dataTypes {
-		if t == dtype {
-			return sd
-		}
-	}
-	return SDataUnknown
-}
-
 type Cmd struct {
 	Name    string
 	Type    CmdType
-	DType   DataType
+	RType   db.RecordType
 	Options map[string]string
 }
 
@@ -200,7 +153,7 @@ func parseCmd(ctx context.Context, cmd string) (*Cmd, error) {
 				log.Println(ErrNotEnoughArgs)
 				return nil, ErrNotEnoughArgs
 			}
-			c.DType = DataPassword
+			c.RType = db.RecordPassword
 			c.Options = make(map[string]string)
 			for _, o := range opts {
 				if strings.HasPrefix(o, "-name=") {
@@ -228,7 +181,7 @@ func parseCmd(ctx context.Context, cmd string) (*Cmd, error) {
 				log.Println(ErrNotEnoughArgs)
 				return nil, ErrNotEnoughArgs
 			}
-			c.DType = DataBinary
+			c.RType = db.RecordBinary
 			c.Options = make(map[string]string)
 			for _, o := range opts {
 				if strings.HasPrefix(o, "-name=") {
@@ -256,7 +209,7 @@ func parseCmd(ctx context.Context, cmd string) (*Cmd, error) {
 				log.Println(ErrNotEnoughArgs)
 				return nil, ErrNotEnoughArgs
 			}
-			c.DType = DataCard
+			c.RType = db.RecordCard
 			c.Options = make(map[string]string)
 			for _, o := range opts {
 				if strings.HasPrefix(o, "-name=") {
@@ -305,7 +258,7 @@ func parseCmd(ctx context.Context, cmd string) (*Cmd, error) {
 				log.Println(ErrNotEnoughArgs)
 				return nil, ErrNotEnoughArgs
 			}
-			c.DType = DataText
+			c.RType = db.RecordText
 			c.Options = make(map[string]string)
 			for _, o := range opts {
 				if strings.HasPrefix(o, "-name=") {
@@ -335,13 +288,13 @@ func parseCmd(ctx context.Context, cmd string) (*Cmd, error) {
 	case CmdGet:
 		c := Cmd{Name: SCmdGet, Type: CmdGet}
 		if argv[1] == "pass" {
-			c.DType = DataPassword
+			c.RType = db.RecordPassword
 		} else if argv[1] == "text" {
-			c.DType = DataText
+			c.RType = db.RecordText
 		} else if argv[1] == "binary" || argv[1] == "file" {
-			c.DType = DataBinary
+			c.RType = db.RecordBinary
 		} else if argv[1] == "card" {
-			c.DType = DataCard
+			c.RType = db.RecordCard
 		}
 		opts := argv[2:]
 		if len(opts) < 1 {
@@ -374,7 +327,7 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 	switch cmd.Type {
 	case CmdHelp:
 		fmt.Println("Help:")
-		fmt.Printf("  register -login=user -pass=pass\t# register user\n")
+		fmt.Printf("  register -login=user -pass=pass\n")
 		fmt.Printf("  login -login=user -pass=pass\n")
 		fmt.Printf("  list\n")
 		fmt.Printf("  get pass -name=Some_name\n")
@@ -415,25 +368,25 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 			log.Println(err)
 			return err
 		}
-		var dataList []Data
+		var dataList []db.Record
 		err = json.Unmarshal(buf.Bytes(), &dataList)
 		if err != nil {
 			log.Println(err)
 			return err
 		}
 		// Collect data into groups
-		var passList []Data
-		var fileList []Data
-		var cardList []Data
-		var textList []Data
+		var passList []db.Record
+		var fileList []db.Record
+		var cardList []db.Record
+		var textList []db.Record
 		for _, d := range dataList {
-			if d.Type == SDataPassword {
+			if d.Type == db.SRecordPassword {
 				passList = append(passList, d)
-			} else if d.Type == SDataBinary {
+			} else if d.Type == db.SRecordBinary {
 				fileList = append(fileList, d)
-			} else if d.Type == SDataCard {
+			} else if d.Type == db.SRecordCard {
 				cardList = append(cardList, d)
-			} else if d.Type == SDataText {
+			} else if d.Type == db.SRecordText {
 				textList = append(textList, d)
 			}
 		}
@@ -464,9 +417,9 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 		}
 	case CmdPut:
 		URL := c.URL + "/put"
-		switch cmd.DType {
-		case DataPassword:
-			data := Data{Type: getSDataType(DataPassword)}
+		switch cmd.RType {
+		case db.RecordPassword:
+			data := db.Record{Type: db.GetSRecordType(db.RecordPassword)}
 			pass := db.Password{Name: cmd.Options["name"], Password: cmd.Options["pass"]}
 			jsonPass, err := json.Marshal(pass)
 			if err != nil {
@@ -486,7 +439,7 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 				return err
 			}
 			log.Printf("%v\n", resp.Status)
-		case DataBinary:
+		case db.RecordBinary:
 			URL = URL + "/binary"
 			fileName := cmd.Options["name"]
 			filePath := cmd.Options["path"]
@@ -534,8 +487,8 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 				return err
 			}
 			fmt.Printf("%v\n", resp.Status)
-		case DataCard:
-			data := db.Data{Type: getSDataType(DataCard)}
+		case db.RecordCard:
+			data := db.Record{Type: db.GetSRecordType(db.RecordCard)}
 			card := db.Card{Name: cmd.Options["name"],
 				Number: cmd.Options["number"],
 				Cvv:    cmd.Options["cvv"],
@@ -559,8 +512,8 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 				return err
 			}
 			log.Printf("%v\n", resp.Status)
-		case DataText:
-			data := db.Data{Type: getSDataType(DataText)}
+		case db.RecordText:
+			data := db.Record{Type: db.GetSRecordType(db.RecordText)}
 			text := db.Text{Name: cmd.Options["name"], Text: cmd.Options["text"]}
 			jsonText, err := json.Marshal(text)
 			if err != nil {
@@ -583,13 +536,13 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 		} // cmd.DType
 	case CmdGet:
 		URL := c.URL + "/get"
-		if cmd.DType == DataUnknown {
+		if cmd.RType == db.RecordUnknown {
 			log.Println(ErrUnknownData)
 			return ErrUnknownData
 		}
-		data := db.Data{Type: getSDataType(cmd.DType)}
+		data := db.Record{Type: db.GetSRecordType(cmd.RType)}
 		var resp *http.Response
-		if cmd.DType == DataPassword {
+		if cmd.RType == db.RecordPassword {
 			pass := db.Password{Name: cmd.Options["name"]}
 			jsonPass, err := json.Marshal(pass)
 			if err != nil {
@@ -608,7 +561,7 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 				log.Println(err)
 				return err
 			}
-		} else if cmd.DType == DataText {
+		} else if cmd.RType == db.RecordText {
 			text := db.Text{Name: cmd.Options["name"]}
 			jsonText, err := json.Marshal(text)
 			if err != nil {
@@ -627,7 +580,7 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 				log.Println(err)
 				return err
 			}
-		} else if cmd.DType == DataCard {
+		} else if cmd.RType == db.RecordCard {
 			card := db.Card{Name: cmd.Options["name"]}
 			jsonCard, err := json.Marshal(card)
 			if err != nil {
@@ -646,7 +599,7 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 				log.Println(err)
 				return err
 			}
-		} else if cmd.DType == DataBinary {
+		} else if cmd.RType == db.RecordBinary {
 			binary := db.Binary{Name: cmd.Options["name"]}
 			jsonBinary, err := json.Marshal(binary)
 			if err != nil {
@@ -735,7 +688,7 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 					log.Fatal(err)
 				}
 			}
-			log.Println("%s downloaded\n", fpath)
+			log.Printf(" %s downloaded\n", fpath)
 		}
 		log.Printf("%v\n", resp.Status)
 	}
@@ -744,18 +697,17 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 
 func main() {
 	ctx := context.Background()
-	var URL string = "http://localhost:8080"
 	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 	if err != nil {
 		log.Fatal(err)
 	}
-	// download dir
-	download := "download"
-	err = os.MkdirAll(download, 0750)
+	opts := config.ParseOptions()
+	// create download dir
+	err = os.MkdirAll(opts.Download, 0750)
 	if err != nil && !errors.Is(err, os.ErrExist) {
 		log.Fatal(err)
 	}
-	client := Client{URL: URL, Http: &http.Client{Jar: jar}, Download: download}
+	client := Client{URL: opts.URL, Http: &http.Client{Jar: jar}, Download: opts.Download}
 	for {
 		fmt.Print("> ")
 		cmd, err := readCmd()
