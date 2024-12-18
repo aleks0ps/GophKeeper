@@ -61,8 +61,30 @@ type Record struct {
 	Payload []byte `json:"payload"`
 }
 
-// alias for Record
-type Data Record
+var recordTypes map[string]RecordType = map[string]RecordType{
+	SRecordUnknown:  RecordUnknown,
+	SRecordPassword: RecordPassword,
+	SRecordText:     RecordText,
+	SRecordBinary:   RecordBinary,
+	SRecordCard:     RecordCard,
+}
+
+func GetRecordType(r string) RecordType {
+	t, ok := recordTypes[r]
+	if !ok {
+		return RecordUnknown
+	}
+	return t
+}
+
+func GetSRecordType(rtype RecordType) string {
+	for sd, t := range recordTypes {
+		if t == rtype {
+			return sd
+		}
+	}
+	return SRecordUnknown
+}
 
 // Storage
 type PG struct {
