@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:14.13-bookworm
+    hostname: db
+    environment:
+      POSTGRES_DB: gophkeeper
+      POSTGRES_USER: gophkeeper
+      POSTGRES_PASSWORD: gophkeeper
+    ports:
+      - 5432:5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+  gophkeeper:
+    image: gophkeeper:v1
+    hostname: gophkeeper
+    build: ./
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+    environment:
+      RUN_ADDRESS: ":4443"
+      DATABASE_URI: "postgres://gophkeeper:gophkeeper@db:5432/gophkeeper?sslmode=disable"
+      SECRET_KEY: "235550ABCB36C06FB7477BBE05971B26"
+    volumes:
+      - ./data:/app/data
+    ports:
+      - 4443:4443
+

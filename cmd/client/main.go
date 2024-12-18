@@ -711,8 +711,7 @@ func main() {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
-	URL := "https://localhost:8080"
-	client := Client{URL: URL, Http: &http.Client{Jar: jar, Transport: tr}, Download: opts.Download}
+	client := Client{URL: opts.URL, Http: &http.Client{Jar: jar, Transport: tr}, Download: opts.Download}
 	for {
 		fmt.Print("> ")
 		cmd, err := readCmd()
