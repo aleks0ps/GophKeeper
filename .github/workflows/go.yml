@@ -35,3 +35,14 @@ jobs:
           cmd/gophkeeper
           cmd/client/
           !cmd/**/*.go
+          
+    - name: Release with Notes
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          cmd/gophkeeper
+          cmd/client/
+          !cmd/**/*.go
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
