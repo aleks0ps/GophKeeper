@@ -124,6 +124,7 @@ func (suite *DbTestSuite) TestList() {
 	assert.NoError(t, err)
 	log.Printf("TestList: %+v\n", recs)
 }
+
 func TestDbTestSuite(t *testing.T) {
 	suite.Run(t, new(DbTestSuite))
 }
