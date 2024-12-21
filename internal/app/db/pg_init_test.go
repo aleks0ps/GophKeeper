@@ -5,116 +5,65 @@ import (
 	"log"
 	"os"
 	"testing"
-	"time"
 
+	"github.com/aleks0ps/GophKeeper/testhelpers"
 	"github.com/stretchr/testify/assert"
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/modules/postgres"
-	"github.com/testcontainers/testcontainers-go/wait"
+	"github.com/stretchr/testify/suite"
 )
 
-func TestNewDB(t *testing.T) {
-	ctx := context.TODO()
-	// Prepare database
-	pgContainer, err := postgres.RunContainer(ctx,
-		testcontainers.WithImage("postgres:15.3-alpine"),
-		postgres.WithDatabase("test"),
-		postgres.WithUsername("test"),
-		postgres.WithPassword("test"),
-		testcontainers.WithWaitStrategy(
-			wait.ForLog("database system is ready to accept connections").
-				WithOccurrence(2).WithStartupTimeout(5*time.Second)),
-	)
+type DbTestSuite struct {
+	suite.Suite
+	pgContainer *testhelpers.PostgresContainer
+	DB          *PG
+	ctx         context.Context
+}
+
+func (suite *DbTestSuite) SetupSuite() {
+	suite.ctx = context.Background()
+	pgContainer, err := testhelpers.CreatePostgresContainer(suite.ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
-	t.Cleanup(func() {
-		if err := pgContainer.Terminate(ctx); err != nil {
-			t.Fatalf("failed to terminate pgContainer: %s", err)
-		}
-	})
-	connStr, err := pgContainer.ConnectionString(ctx, "sslmode=disable")
-	assert.NoError(t, err)
-	logger := log.New(os.Stdout, "NEWDB: ", log.LstdFlags)
+	suite.pgContainer = pgContainer
+	logger := log.New(os.Stdout, "TESTDB: ", log.LstdFlags)
 	secret := "71D9AE8F80CE194F24580D1B519854BE"
-	_, err = NewDB(ctx, connStr, logger, secret)
+	DB, err := NewDB(suite.ctx, suite.pgContainer.ConnectionString, logger, secret)
 	if err != nil {
 		logger.Fatal(err)
+	}
+	suite.DB = DB
+}
+
+func (suite *DbTestSuite) TearDownSuite() {
+	if err := suite.pgContainer.Terminate(suite.ctx); err != nil {
+		log.Fatalf("error terminating postgres container: %s", err)
 	}
 }
 
-func TestRegister(t *testing.T) {
-	ctx := context.TODO()
-	// Prepare database
-	pgContainer, err := postgres.RunContainer(ctx,
-		testcontainers.WithImage("postgres:15.3-alpine"),
-		postgres.WithDatabase("test"),
-		postgres.WithUsername("test"),
-		postgres.WithPassword("test"),
-		testcontainers.WithWaitStrategy(
-			wait.ForLog("database system is ready to accept connections").
-				WithOccurrence(2).WithStartupTimeout(5*time.Second)),
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	t.Cleanup(func() {
-		if err := pgContainer.Terminate(ctx); err != nil {
-			t.Fatalf("failed to terminate pgContainer: %s", err)
-		}
-	})
-	connStr, err := pgContainer.ConnectionString(ctx, "sslmode=disable")
+func (suite *DbTestSuite) TestNewDB() {
+	t := suite.T()
+	_, err := NewDB(suite.ctx, suite.pgContainer.ConnectionString, suite.DB.Logger, suite.DB.Secret)
 	assert.NoError(t, err)
-	logger := log.New(os.Stdout, "NEWDB: ", log.LstdFlags)
-	secret := "71D9AE8F80CE194F24580D1B519854BE"
-	pg, err := NewDB(ctx, connStr, logger, secret)
-	if err != nil {
-		logger.Fatal(err)
-	}
-	user := User{ID: "", Login: "test", Password: "1234"}
-	err = pg.Register(ctx, &user)
-	if err != nil {
-		log.Fatal(err)
-	}
 }
 
-func TestLogin(t *testing.T) {
-	ctx := context.TODO()
-	// Prepare database
-	pgContainer, err := postgres.RunContainer(ctx,
-		testcontainers.WithImage("postgres:15.3-alpine"),
-		postgres.WithDatabase("test"),
-		postgres.WithUsername("test"),
-		postgres.WithPassword("test"),
-		testcontainers.WithWaitStrategy(
-			wait.ForLog("database system is ready to accept connections").
-				WithOccurrence(2).WithStartupTimeout(5*time.Second)),
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	t.Cleanup(func() {
-		if err := pgContainer.Terminate(ctx); err != nil {
-			t.Fatalf("failed to terminate pgContainer: %s", err)
-		}
-	})
-	connStr, err := pgContainer.ConnectionString(ctx, "sslmode=disable")
-	assert.NoError(t, err)
-	logger := log.New(os.Stdout, "NEWDB: ", log.LstdFlags)
-	secret := "71D9AE8F80CE194F24580D1B519854BE"
-	pg, err := NewDB(ctx, connStr, logger, secret)
-	if err != nil {
-		logger.Fatal(err)
-	}
+func (suite *DbTestSuite) TestRegister() {
+	t := suite.T()
 	user := User{ID: "", Login: "test", Password: "1234"}
+	err := suite.DB.Register(suite.ctx, &user)
+	assert.NoError(t, err)
+}
+
+func (suite *DbTestSuite) TestLogin() {
+	t := suite.T()
+	user := User{ID: "", Login: "user", Password: "password"}
 	// Register for the first time
-	err = pg.Register(ctx, &user)
-	if err != nil {
-		log.Fatal(err)
-	}
+	err := suite.DB.Register(suite.ctx, &user)
+	assert.NoError(t, err)
 	// Login
-	err = pg.Login(ctx, &user)
-	if err != nil {
-		log.Fatal(err)
-	}
+	err = suite.DB.Login(suite.ctx, &user)
+	assert.NoError(t, err)
+}
+
+func TestDbTestSuite(t *testing.T) {
+	suite.Run(t, new(DbTestSuite))
 }
