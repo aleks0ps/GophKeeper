@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"io"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -248,6 +251,61 @@ func (suite *SvcTestSuite) TestList() {
 	resp, err = client.Post(u.String()+"/list", "application/json", nil)
 	assert.NoError(t, err)
 	log.Printf("TestList: %v\n", resp.Status)
+}
+
+func (suite *SvcTestSuite) TestPutBinary() {
+	t := suite.T()
+	s := Svc{Logger: suite.Logger, DB: suite.DB, DataDir: "/tmp"}
+	// Start test server
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.RequestURI() == "/register" {
+			s.Register(w, r)
+		} else if r.URL.RequestURI() == "/put/binary" {
+			s.PutBinary(w, r)
+		}
+	}))
+	defer ts.Close()
+	u, _ := url.Parse(ts.URL)
+	// cookies placeholder
+	jar, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
+	// create a client
+	client := &http.Client{
+		Jar: jar,
+	}
+	// specify test user
+	user := db.User{ID: "", Login: "svc-test56", Password: "1234"}
+	payload, _ := json.Marshal(&user)
+	buf := bytes.NewBuffer(payload)
+	// make a reg request
+	resp, err := client.Post(u.String()+"/register", "application/json", buf)
+	assert.NoError(t, err)
+	// Put some data
+	fileName := "Article-OPEN-SOURCE-SOFTWARE-THE-SUCCESS-OF-AN-ALTERNATIVE-INTELLECTUAL-PROPERTY-INCENTIVE-PARADIGM.pdf"
+	filePath := "../../../files/" + fileName
+	pr, pw := io.Pipe()
+	writer := multipart.NewWriter(pw)
+	contentType := writer.FormDataContentType()
+	go func() {
+		file, err := os.Open(filePath)
+		assert.NoError(t, err)
+		defer file.Close()
+		part, err := writer.CreateFormFile("file", fileName)
+		assert.NoError(t, err)
+		for {
+			_, err = io.CopyN(part, file, 4096)
+			if err == io.ErrUnexpectedEOF || err == io.EOF {
+				break
+			}
+			assert.NoError(t, err)
+		}
+		pw.CloseWithError(writer.Close())
+	}()
+	req, err := http.NewRequest("POST", u.String()+"/put/binary", pr)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", contentType)
+	resp, err = client.Do(req)
+	assert.NoError(t, err)
+	fmt.Printf("%v\n", resp.Status)
 }
 
 // Run test suite
