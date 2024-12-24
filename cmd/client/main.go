@@ -31,16 +31,16 @@ type Client struct {
 }
 
 var (
-	ErrEmptyLogin       error = errors.New("Empty login")
-	ErrEmptyPassword    error = errors.New("Empty password")
-	ErrNotEnoughArgs    error = errors.New("Not enough arguments")
-	ErrUnknownCommand   error = errors.New("Unknown command")
-	ErrUnknownOption    error = errors.New("Unknown option")
-	ErrUnknownData      error = errors.New("Unknown data")
-	ErrEmptyCommand     error = errors.New("Empty command")
-	ErrEmptyOption      error = errors.New("Empty option")
-	ErrEmptySecretClass error = errors.New("Empty secret class")
-	ErrShouldNotReach   error = errors.New("Should not reach")
+	ErrEmptyLogin       = errors.New("Empty login")
+	ErrEmptyPassword    = errors.New("Empty password")
+	ErrNotEnoughArgs    = errors.New("Not enough arguments")
+	ErrUnknownCommand   = errors.New("Unknown command")
+	ErrUnknownOption    = errors.New("Unknown option")
+	ErrUnknownData      = errors.New("Unknown data")
+	ErrEmptyCommand     = errors.New("Empty command")
+	ErrEmptyOption      = errors.New("Empty option")
+	ErrEmptySecretClass = errors.New("Empty secret class")
+	ErrShouldNotReach   = errors.New("Should not reach")
 )
 
 type CmdType int
@@ -356,6 +356,7 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 			log.Println(err)
 			return err
 		}
+		defer resp.Body.Close()
 		log.Printf("%v\n", resp.Status)
 	case CmdList:
 		URL := c.URL + "/list"
@@ -364,6 +365,7 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 			log.Println(err)
 			return err
 		}
+		defer resp.Body.Close()
 		buf := bytes.Buffer{}
 		_, err = buf.ReadFrom(resp.Body)
 		if err != nil {
@@ -440,9 +442,10 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 				log.Println(err)
 				return err
 			}
+			defer resp.Body.Close()
 			log.Printf("%v\n", resp.Status)
 		case db.RecordBinary:
-			URL = URL + "/binary"
+			URL += "/binary"
 			fileName := cmd.Options["name"]
 			filePath := cmd.Options["path"]
 			// use pipe to load large files
@@ -488,6 +491,7 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 				log.Println(err)
 				return err
 			}
+			defer resp.Body.Close()
 			fmt.Printf("%v\n", resp.Status)
 		case db.RecordCard:
 			data := db.Record{Type: db.GetSRecordType(db.RecordCard)}
@@ -513,6 +517,7 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 				log.Println(err)
 				return err
 			}
+			defer resp.Body.Close()
 			log.Printf("%v\n", resp.Status)
 		case db.RecordText:
 			data := db.Record{Type: db.GetSRecordType(db.RecordText)}
@@ -534,6 +539,7 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 				log.Println(err)
 				return err
 			}
+			defer resp.Body.Close()
 			log.Printf("%v\n", resp.Status)
 		} // cmd.DType
 	case CmdGet:
@@ -621,8 +627,9 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 				return err
 			}
 		}
+		// close body
+		defer resp.Body.Close()
 		if resp.Header.Get("Content-Type") == "application/json" {
-			defer resp.Body.Close()
 			buf := bytes.Buffer{}
 			_, err := buf.ReadFrom(resp.Body)
 			if err != nil {
@@ -673,14 +680,12 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 					if err != nil {
 						log.Fatal("ERR:get:Binary: ", err)
 					}
-					defer file.Close()
 				} else {
 					fpath = part.FileName()
 					file, err = os.CreateTemp(c.Download, fpath)
 					if err != nil {
 						log.Fatal(err)
 					}
-					defer file.Close()
 				}
 				bytes, err := ioutil.ReadAll(part)
 				if err != nil {
@@ -690,6 +695,7 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 					log.Fatal(err)
 				}
 			}
+			file.Close()
 			log.Printf(" %s downloaded\n", fpath)
 		}
 		log.Printf("%v\n", resp.Status)

@@ -88,7 +88,7 @@ func NewCookie(w http.ResponseWriter, value string) (map[string]string, error) {
 		Value:   claims.ID,
 		Expires: expirationTime,
 	})
-	res["id"] = (*claims).ID
+	res["id"] = claims.ID
 	res["token"] = tokenString
 	return res, nil
 }
