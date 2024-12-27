@@ -1,3 +1,4 @@
+// Package config -- пакет описывает конфигурацию клиента
 package config
 
 import (

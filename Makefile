@@ -16,6 +16,14 @@ all: build
 secret:
 	tr -dc 'A-F0-9' < /dev/urandom | head -c32
 
+lint:
+	golangci-lint run ./...
+	staticcheck -checks all ./...
+
+.PHONY: test
+test:
+	go test -v ./internal/...
+
 build:
 	go build -o ./cmd/gophkeeper/$(SERVER) ./cmd/gophkeeper
 	go build -ldflags "$(LDFLAGS)" -o ./cmd/client/$(CLIENT) ./cmd/client

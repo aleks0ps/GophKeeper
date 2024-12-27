@@ -1,4 +1,4 @@
-// http -- описывает удобное текстовое представление разные параметров http протокола
+// Package http -- описывает удобное текстовое представление разные параметров http протокола
 package http
 
 import (
@@ -82,17 +82,17 @@ func WriteResponse(w http.ResponseWriter, t ContentType, status int, data []byte
 	case CTypeNone:
 		w.WriteHeader(status)
 		if data != nil {
-			w.Write(data)
+			_, _ = w.Write(data)
 		}
 	default:
 		w.Header().Set("Content-Type", GetContentTypeName(t))
 		w.Header().Set("Content-Length", strconv.Itoa(len(data)))
 		w.WriteHeader(status)
-		w.Write(data)
+		_, _ = w.Write(data)
 	}
 }
 
-// WriterError -- обертка для отправки сообщения об ошибке пользователю
+// WriteError -- обертка для отправки сообщения об ошибке пользователю
 func WriteError(w http.ResponseWriter, status int, err error) {
 	var errMsg string
 	if err != nil {

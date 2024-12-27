@@ -12,14 +12,14 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type DbTestSuite struct {
+type DBTestSuite struct {
 	suite.Suite
 	pgContainer *testhelpers.PostgresContainer
 	DB          *PG
 	ctx         context.Context
 }
 
-func (suite *DbTestSuite) SetupSuite() {
+func (suite *DBTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 	pgContainer, err := testhelpers.CreatePostgresContainer(suite.ctx)
 	if err != nil {
@@ -35,26 +35,26 @@ func (suite *DbTestSuite) SetupSuite() {
 	suite.DB = DB
 }
 
-func (suite *DbTestSuite) TearDownSuite() {
+func (suite *DBTestSuite) TearDownSuite() {
 	if err := suite.pgContainer.Terminate(suite.ctx); err != nil {
 		log.Fatalf("error terminating postgres container: %s", err)
 	}
 }
 
-func (suite *DbTestSuite) TestNewDB() {
+func (suite *DBTestSuite) TestNewDB() {
 	t := suite.T()
 	_, err := NewDB(suite.ctx, suite.pgContainer.ConnectionString, suite.DB.Logger, suite.DB.Secret)
 	assert.NoError(t, err)
 }
 
-func (suite *DbTestSuite) TestRegister() {
+func (suite *DBTestSuite) TestRegister() {
 	t := suite.T()
 	user := User{ID: "", Login: "test", Password: "1234"}
 	err := suite.DB.Register(suite.ctx, &user)
 	assert.NoError(t, err)
 }
 
-func (suite *DbTestSuite) TestLogin() {
+func (suite *DBTestSuite) TestLogin() {
 	t := suite.T()
 	user := User{ID: "", Login: "user", Password: "password"}
 	// Register for the first time
@@ -65,7 +65,7 @@ func (suite *DbTestSuite) TestLogin() {
 	assert.NoError(t, err)
 }
 
-func (suite *DbTestSuite) TestGet() {
+func (suite *DBTestSuite) TestGet() {
 	t := suite.T()
 	user := User{ID: "", Login: "user1", Password: "pass1"}
 	// Register for the first time
@@ -92,7 +92,7 @@ func (suite *DbTestSuite) TestGet() {
 	log.Printf("TestGet: %+v\n", res)
 }
 
-func (suite *DbTestSuite) TestPut() {
+func (suite *DBTestSuite) TestPut() {
 	t := suite.T()
 	user := User{ID: "", Login: "someUser", Password: "somePAss"}
 	// Register for the first time
@@ -108,7 +108,7 @@ func (suite *DbTestSuite) TestPut() {
 	assert.NoError(t, err)
 }
 
-func (suite *DbTestSuite) TestList() {
+func (suite *DBTestSuite) TestList() {
 	t := suite.T()
 	user := User{ID: "", Login: "userRO", Password: "1234"}
 	// Register for the first time
@@ -125,6 +125,6 @@ func (suite *DbTestSuite) TestList() {
 	log.Printf("TestList: %+v\n", recs)
 }
 
-func TestDbTestSuite(t *testing.T) {
-	suite.Run(t, new(DbTestSuite))
+func TestDBTestSuite(t *testing.T) {
+	suite.Run(t, new(DBTestSuite))
 }

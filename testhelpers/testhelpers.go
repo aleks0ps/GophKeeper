@@ -1,3 +1,4 @@
+// Package testhelpers -- пакет для тестирования интефрейса работы с бд
 package testhelpers
 
 import (
@@ -15,8 +16,8 @@ type PostgresContainer struct {
 }
 
 func CreatePostgresContainer(ctx context.Context) (*PostgresContainer, error) {
-	pgContainer, err := postgres.RunContainer(ctx,
-		testcontainers.WithImage("postgres:15.3-alpine"),
+	pgContainer, err := postgres.Run(ctx,
+		"postgres:15.3-alpine",
 		postgres.WithDatabase("test-db"),
 		postgres.WithUsername("postgres"),
 		postgres.WithPassword("postgres"),

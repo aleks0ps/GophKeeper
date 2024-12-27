@@ -1,3 +1,4 @@
+// Package svc -- пакет реализует веб сервис хранения паролей
 package svc
 
 import (
@@ -5,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"log"
 	"net/http"
 
 	mycookie "github.com/aleks0ps/GophKeeper/internal/app/cookie"
@@ -13,18 +13,6 @@ import (
 	myerror "github.com/aleks0ps/GophKeeper/internal/app/error"
 	myhttp "github.com/aleks0ps/GophKeeper/internal/app/http"
 )
-
-// Debug function
-func DEBUG(logger *log.Logger, r *http.Request) {
-	logger.Printf("%s\n", r.Method)
-	logger.Printf("%s\n", r.URL)
-	for k, v := range r.Header {
-		logger.Printf("%s\n", k)
-		for i := 0; i < len(v); i++ {
-			logger.Printf("[%s] %s\n", k, v[i])
-		}
-	}
-}
 
 // Register -- регистрирует пользователя и отдает cookies
 func (s *Svc) Register(w http.ResponseWriter, r *http.Request) {

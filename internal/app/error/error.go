@@ -1,4 +1,4 @@
-// error -- описывает ошибки аутентификации
+// Package error -- описывает ошибки аутентификации
 package error
 
 import "errors"

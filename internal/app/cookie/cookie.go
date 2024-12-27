@@ -1,3 +1,4 @@
+// Package cookie -- пакет реализует работу с cookies
 package cookie
 
 import (

@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"mime"
 	"mime/multipart"
@@ -26,21 +25,21 @@ import (
 
 type Client struct {
 	URL      string
-	Http     *http.Client
+	HTTP     *http.Client
 	Download string
 }
 
 var (
-	ErrEmptyLogin       = errors.New("Empty login")
-	ErrEmptyPassword    = errors.New("Empty password")
-	ErrNotEnoughArgs    = errors.New("Not enough arguments")
-	ErrUnknownCommand   = errors.New("Unknown command")
-	ErrUnknownOption    = errors.New("Unknown option")
-	ErrUnknownData      = errors.New("Unknown data")
-	ErrEmptyCommand     = errors.New("Empty command")
-	ErrEmptyOption      = errors.New("Empty option")
-	ErrEmptySecretClass = errors.New("Empty secret class")
-	ErrShouldNotReach   = errors.New("Should not reach")
+	ErrEmptyLogin       = errors.New("empty login")
+	ErrEmptyPassword    = errors.New("empty password")
+	ErrNotEnoughArgs    = errors.New("not enough arguments")
+	ErrUnknownCommand   = errors.New("unknown command")
+	ErrUnknownOption    = errors.New("unknown option")
+	ErrUnknownData      = errors.New("unknown data")
+	ErrEmptyCommand     = errors.New("empty command")
+	ErrEmptyOption      = errors.New("empty option")
+	ErrEmptySecretClass = errors.New("empty secret class")
+	ErrShouldNotReach   = errors.New("should not reach")
 )
 
 type CmdType int
@@ -56,13 +55,13 @@ const (
 )
 
 const (
-	SCmdUnknown  string = "unknown"
-	SCmdHelp            = "help"
-	SCmdRegister        = "register"
-	SCmdLogin           = "login"
-	SCmdList            = "list"
-	SCmdPut             = "put"
-	SCmdGet             = "get"
+	SCmdUnknown  = "unknown"
+	SCmdHelp     = "help"
+	SCmdRegister = "register"
+	SCmdLogin    = "login"
+	SCmdList     = "list"
+	SCmdPut      = "put"
+	SCmdGet      = "get"
 )
 
 var commandTypes map[string]CmdType = map[string]CmdType{
@@ -149,7 +148,8 @@ func parseCmd(ctx context.Context, cmd string) (*Cmd, error) {
 		return &c, nil
 	case CmdPut:
 		c := Cmd{Name: SCmdPut, Type: CmdPut}
-		if argv[1] == "pass" {
+		switch argv[1] {
+		case "pass":
 			opts := argv[2:]
 			if len(opts) < 2 {
 				log.Println(ErrNotEnoughArgs)
@@ -177,7 +177,7 @@ func parseCmd(ctx context.Context, cmd string) (*Cmd, error) {
 					return nil, ErrUnknownOption
 				}
 			}
-		} else if argv[1] == "file" {
+		case "file":
 			opts := argv[2:]
 			if len(opts) < 2 {
 				log.Println(ErrNotEnoughArgs)
@@ -205,7 +205,7 @@ func parseCmd(ctx context.Context, cmd string) (*Cmd, error) {
 					return nil, ErrUnknownOption
 				}
 			}
-		} else if argv[1] == "card" {
+		case "card":
 			opts := argv[2:]
 			if len(opts) < 5 {
 				log.Println(ErrNotEnoughArgs)
@@ -254,7 +254,7 @@ func parseCmd(ctx context.Context, cmd string) (*Cmd, error) {
 					return nil, ErrUnknownOption
 				}
 			} // for
-		} else if argv[1] == "text" {
+		case "text":
 			opts := argv[2:]
 			if len(opts) < 2 {
 				log.Println(ErrNotEnoughArgs)
@@ -285,18 +285,21 @@ func parseCmd(ctx context.Context, cmd string) (*Cmd, error) {
 					return nil, ErrUnknownOption
 				}
 			}
-		} // text
+		} // switch
 		return &c, nil
 	case CmdGet:
 		c := Cmd{Name: SCmdGet, Type: CmdGet}
-		if argv[1] == "pass" {
+		switch argv[1] {
+		case "pass":
 			c.RType = db.RecordPassword
-		} else if argv[1] == "text" {
+		case "text":
 			c.RType = db.RecordText
-		} else if argv[1] == "binary" || argv[1] == "file" {
+		case "binary", "file":
 			c.RType = db.RecordBinary
-		} else if argv[1] == "card" {
+		case "card":
 			c.RType = db.RecordCard
+		default:
+			c.RType = db.RecordUnknown
 		}
 		opts := argv[2:]
 		if len(opts) < 1 {
@@ -322,7 +325,7 @@ func parseCmd(ctx context.Context, cmd string) (*Cmd, error) {
 		c := Cmd{Name: SCmdUnknown, Type: CmdUnknown}
 		return &c, ErrUnknownCommand
 	}
-	return nil, ErrShouldNotReach
+	//return nil, ErrShouldNotReach
 }
 
 func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
@@ -347,11 +350,11 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 		buf := bytes.NewBuffer(payload)
 		URL := c.URL
 		if cmd.Type == CmdRegister {
-			URL = URL + "/register"
+			URL += "/register"
 		} else if cmd.Type == CmdLogin {
-			URL = URL + "/login"
+			URL += "/login"
 		}
-		resp, err := c.Http.Post(URL, "application/json", buf)
+		resp, err := c.HTTP.Post(URL, "application/json", buf)
 		if err != nil {
 			log.Println(err)
 			return err
@@ -360,7 +363,7 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 		log.Printf("%v\n", resp.Status)
 	case CmdList:
 		URL := c.URL + "/list"
-		resp, err := c.Http.Post(URL, "application/json", nil)
+		resp, err := c.HTTP.Post(URL, "application/json", nil)
 		if err != nil {
 			log.Println(err)
 			return err
@@ -384,13 +387,14 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 		var cardList []db.Record
 		var textList []db.Record
 		for _, d := range dataList {
-			if d.Type == db.SRecordPassword {
+			switch d.Type {
+			case db.SRecordPassword:
 				passList = append(passList, d)
-			} else if d.Type == db.SRecordBinary {
+			case db.SRecordBinary:
 				fileList = append(fileList, d)
-			} else if d.Type == db.SRecordCard {
+			case db.SRecordCard:
 				cardList = append(cardList, d)
-			} else if d.Type == db.SRecordText {
+			case db.SRecordText:
 				textList = append(textList, d)
 			}
 		}
@@ -437,7 +441,7 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 				return err
 			}
 			buf := bytes.NewBuffer(payload)
-			resp, err := c.Http.Post(URL, "application/json", buf)
+			resp, err := c.HTTP.Post(URL, "application/json", buf)
 			if err != nil {
 				log.Println(err)
 				return err
@@ -486,7 +490,7 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 				return err
 			}
 			req.Header.Set("Content-Type", contentType)
-			resp, err := c.Http.Do(req)
+			resp, err := c.HTTP.Do(req)
 			if err != nil {
 				log.Println(err)
 				return err
@@ -512,7 +516,7 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 				return err
 			}
 			buf := bytes.NewBuffer(payload)
-			resp, err := c.Http.Post(URL, "application/json", buf)
+			resp, err := c.HTTP.Post(URL, "application/json", buf)
 			if err != nil {
 				log.Println(err)
 				return err
@@ -534,7 +538,7 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 				return err
 			}
 			buf := bytes.NewBuffer(payload)
-			resp, err := c.Http.Post(URL, "application/json", buf)
+			resp, err := c.HTTP.Post(URL, "application/json", buf)
 			if err != nil {
 				log.Println(err)
 				return err
@@ -550,7 +554,8 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 		}
 		data := db.Record{Type: db.GetSRecordType(cmd.RType)}
 		var resp *http.Response
-		if cmd.RType == db.RecordPassword {
+		switch cmd.RType {
+		case db.RecordPassword:
 			pass := db.Password{Name: cmd.Options["name"]}
 			jsonPass, err := json.Marshal(pass)
 			if err != nil {
@@ -564,12 +569,12 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 				return err
 			}
 			buf := bytes.NewBuffer(payload)
-			resp, err = c.Http.Post(URL, "application/json", buf)
+			resp, err = c.HTTP.Post(URL, "application/json", buf)
 			if err != nil {
 				log.Println(err)
 				return err
 			}
-		} else if cmd.RType == db.RecordText {
+		case db.RecordText:
 			text := db.Text{Name: cmd.Options["name"]}
 			jsonText, err := json.Marshal(text)
 			if err != nil {
@@ -583,12 +588,12 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 				return err
 			}
 			buf := bytes.NewBuffer(payload)
-			resp, err = c.Http.Post(URL, "application/json", buf)
+			resp, err = c.HTTP.Post(URL, "application/json", buf)
 			if err != nil {
 				log.Println(err)
 				return err
 			}
-		} else if cmd.RType == db.RecordCard {
+		case db.RecordCard:
 			card := db.Card{Name: cmd.Options["name"]}
 			jsonCard, err := json.Marshal(card)
 			if err != nil {
@@ -602,12 +607,12 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 				return err
 			}
 			buf := bytes.NewBuffer(payload)
-			resp, err = c.Http.Post(URL, "application/json", buf)
+			resp, err = c.HTTP.Post(URL, "application/json", buf)
 			if err != nil {
 				log.Println(err)
 				return err
 			}
-		} else if cmd.RType == db.RecordBinary {
+		case db.RecordBinary:
 			binary := db.Binary{Name: cmd.Options["name"]}
 			jsonBinary, err := json.Marshal(binary)
 			if err != nil {
@@ -621,7 +626,7 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 				return err
 			}
 			buf := bytes.NewBuffer(payload)
-			resp, err = c.Http.Post(URL, "application/json", buf)
+			resp, err = c.HTTP.Post(URL, "application/json", buf)
 			if err != nil {
 				log.Println(err)
 				return err
@@ -642,7 +647,8 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 				log.Println(err)
 				return err
 			}
-			if rec.Type == db.SRecordPassword {
+			switch rec.Type {
+			case db.SRecordPassword:
 				var pass db.Password
 				err := json.Unmarshal(rec.Payload, &pass)
 				if err != nil {
@@ -650,7 +656,7 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 					return err
 				}
 				fmt.Printf("OK >> %+v\n", pass)
-			} else if rec.Type == db.SRecordText {
+			case db.SRecordText:
 				var text db.Text
 				err := json.Unmarshal(rec.Payload, &text)
 				if err != nil {
@@ -658,7 +664,7 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 					return err
 				}
 				fmt.Printf("OK >> %+v\n", text)
-			} else if rec.Type == db.SRecordCard {
+			case db.SRecordCard:
 				var card db.Card
 				err := json.Unmarshal(rec.Payload, &card)
 				if err != nil {
@@ -687,7 +693,7 @@ func (c *Client) execCmd(ctx context.Context, cmd *Cmd) error {
 						log.Fatal(err)
 					}
 				}
-				bytes, err := ioutil.ReadAll(part)
+				bytes, err := io.ReadAll(part)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -719,7 +725,7 @@ func main() {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
-	client := Client{URL: opts.URL, Http: &http.Client{Jar: jar, Transport: tr}, Download: opts.Download}
+	client := Client{URL: opts.URL, HTTP: &http.Client{Jar: jar, Transport: tr}, Download: opts.Download}
 	for {
 		fmt.Print("> ")
 		cmd, err := readCmd()
@@ -734,6 +740,8 @@ func main() {
 			log.Println(err)
 			continue
 		}
-		client.execCmd(ctx, c)
+		if err := client.execCmd(ctx, c); err != nil {
+			log.Println(err)
+		}
 	}
 }

@@ -279,6 +279,7 @@ func (suite *SvcTestSuite) TestPutBinary() {
 	// make a reg request
 	resp, err := client.Post(u.String()+"/register", "application/json", buf)
 	assert.NoError(t, err)
+	resp.Body.Close()
 	// Put some data
 	fileName := "Article-OPEN-SOURCE-SOFTWARE-THE-SUCCESS-OF-AN-ALTERNATIVE-INTELLECTUAL-PROPERTY-INCENTIVE-PARADIGM.pdf"
 	filePath := "../../../files/" + fileName

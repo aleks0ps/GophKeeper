@@ -1,3 +1,4 @@
+// Package app -- основной пакет, точка входа в сервис
 package app
 
 import (

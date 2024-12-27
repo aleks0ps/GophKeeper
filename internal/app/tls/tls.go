@@ -88,7 +88,9 @@ func (t *TLS) WriteCert(fname string) error {
 	}
 	defer f.Close()
 	w := bufio.NewWriter(f)
-	w.Write(t.CertPEM.Bytes())
+	if _, err := w.Write(t.CertPEM.Bytes()); err != nil {
+		return err
+	}
 	w.Flush()
 	return nil
 }
@@ -104,7 +106,7 @@ func (t *TLS) WriteKey(fname string) error {
 	}
 	defer f.Close()
 	w := bufio.NewWriter(f)
-	w.Write(t.KeyPEM.Bytes())
+	_, _ = w.Write(t.KeyPEM.Bytes())
 	w.Flush()
 	return nil
 }

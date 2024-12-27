@@ -1,3 +1,4 @@
+// Package config -- описывает настройки сервиса
 package config
 
 import (
@@ -8,9 +9,7 @@ import (
 )
 
 const (
-	defaultRunAddress  = "localhost:8080"
-	defaultDatabaseURI = "postgres://gophkeeper:gophkeeper@localhost:5432/gophkeeper?sslmode=disable"
-	defaultSecretKey   = "235550ABCB36C06FB7477BBE05971B26" // 32 bytes
+	defaultRunAddress = "localhost:8080"
 )
 
 type Config struct {
@@ -21,9 +20,7 @@ type Config struct {
 
 func ParseOptions() *Config {
 	opts := Config{
-		RunAddress:  defaultRunAddress,
-		DatabaseURI: defaultDatabaseURI,
-		Secret:      defaultSecretKey,
+		RunAddress: defaultRunAddress,
 	}
 	if err := env.Parse(&opts); err != nil {
 		fmt.Println("failed:", err)
